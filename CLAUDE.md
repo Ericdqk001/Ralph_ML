@@ -1,17 +1,17 @@
-# Ralph Agent Instructions
+# Ralph_ML Agent Instructions
 
-You are an autonomous coding agent working on a software project.
+You are an autonomous ML engineering agent building a research pipeline.
 
 ## Your Task
 
-1. Read the PRD at `prd.json` (in the same directory as this file)
-2. Read the progress log at `progress.txt` (check Codebase Patterns section first)
+1. Read the PRD at `prd.json` (in the same directory as this file, or the path specified via `--prd`)
+2. Read the progress log at `progress.txt` (check Pipeline Patterns section first)
 3. Check you're on the correct branch from PRD `branchName`. If not, check it out or create from main.
 4. Pick the **highest priority** user story where `passes: false`
 5. Implement that single user story
-6. Run quality checks (e.g., typecheck, lint, test - use whatever your project requires)
+6. Run quality checks: execute the test command from `prd.json`'s `testCommand` field, or the `$TEST_CMD` environment variable if set, or fall back to `pytest` in the project root
 7. Update CLAUDE.md files if you discover reusable patterns (see below)
-8. If checks pass, commit ALL changes with message: `feat: [Story ID] - [Story Title]`
+8. If checks pass, commit ALL changes with message: `pipeline: [Story ID] - [Story Title]`
 9. Update the PRD to set `passes: true` for the completed story
 10. Append your progress to `progress.txt`
 
@@ -22,24 +22,29 @@ APPEND to progress.txt (never replace, always append):
 ## [Date/Time] - [Story ID]
 - What was implemented
 - Files changed
+- **Artifacts produced:**
+  - Model files, checkpoints (e.g., `models/model_v1.pkl`)
+  - Figures and plots (e.g., `figures/loss_curve.png`)
+  - Result CSVs or metrics (e.g., `results/metrics.csv`)
 - **Learnings for future iterations:**
-  - Patterns discovered (e.g., "this codebase uses X for Y")
+  - Patterns discovered (e.g., "this pipeline uses X for Y")
   - Gotchas encountered (e.g., "don't forget to update Z when changing W")
-  - Useful context (e.g., "the evaluation panel is in component X")
+  - Useful context (e.g., "the evaluation step depends on module X")
 ---
 ```
 
-The learnings section is critical - it helps future iterations avoid repeating mistakes and understand the codebase better.
+The learnings section is critical - it helps future iterations avoid repeating mistakes and understand the pipeline better.
 
 ## Consolidate Patterns
 
-If you discover a **reusable pattern** that future iterations should know, add it to the `## Codebase Patterns` section at the TOP of progress.txt (create it if it doesn't exist). This section should consolidate the most important learnings:
+If you discover a **reusable pattern** that future iterations should know, add it to the `## Pipeline Patterns` section at the TOP of progress.txt (create it if it doesn't exist). This section should consolidate the most important learnings:
 
 ```
-## Codebase Patterns
-- Example: Use `sql<number>` template for aggregations
-- Example: Always use `IF NOT EXISTS` for migrations
-- Example: Export types from actions.ts for UI components
+## Pipeline Patterns
+- Example: Always set `random_state=42` (or seed from config) for reproducibility
+- Example: Use `train_test_split` with `stratify=` for classification tasks
+- Example: Validate data shapes after every transform step
+- Example: Log metrics to `results/` directory as CSV
 ```
 
 Only add patterns that are **general and reusable**, not story-specific details.
@@ -51,17 +56,17 @@ Before committing, check if any edited files have learnings worth preserving in 
 1. **Identify directories with edited files** - Look at which directories you modified
 2. **Check for existing CLAUDE.md** - Look for CLAUDE.md in those directories or parent directories
 3. **Add valuable learnings** - If you discovered something future developers/agents should know:
-   - API patterns or conventions specific to that module
+   - Data processing patterns or conventions specific to that module
    - Gotchas or non-obvious requirements
-   - Dependencies between files
+   - Dependencies between pipeline stages
    - Testing approaches for that area
    - Configuration or environment requirements
 
 **Examples of good CLAUDE.md additions:**
-- "When modifying X, also update Y to keep them in sync"
-- "This module uses pattern Z for all API calls"
-- "Tests require the dev server running on PORT 3000"
-- "Field names must match the template exactly"
+- "When modifying the feature engineering step, also update the expected column list in tests"
+- "This module expects input DataFrames with a DatetimeIndex"
+- "Tests require sample data in `tests/fixtures/`"
+- "All preprocessing functions must be stateless (fit on train, transform on all splits)"
 
 **Do NOT add:**
 - Story-specific implementation details
@@ -72,20 +77,36 @@ Only update CLAUDE.md if you have **genuinely reusable knowledge** that would he
 
 ## Quality Requirements
 
-- ALL commits must pass your project's quality checks (typecheck, lint, test)
+- ALL commits must pass the project's test suite
 - Do NOT commit broken code
 - Keep changes focused and minimal
 - Follow existing code patterns
 
-## Browser Testing (If Available)
+## ML Guardrails
 
-For any story that changes UI, verify it works in the browser if you have browser testing tools configured (e.g., via MCP):
+When implementing pipeline stages, always follow these principles:
 
-1. Navigate to the relevant page
-2. Verify the UI changes work as expected
-3. Take a screenshot if helpful for the progress log
+### Reproducibility
+- Set random seeds explicitly (NumPy, Python `random`, PyTorch/TensorFlow if applicable)
+- Use `random_state` parameters in scikit-learn estimators and splitters
+- Document any source of non-determinism in progress notes
 
-If no browser tools are available, note in your progress report that manual browser verification is needed.
+### Data Leakage Prevention
+- **Never** fit preprocessors (scalers, encoders, imputers) on validation or test data
+- Fit on training data only, then transform all splits
+- Verify that train/val/test splits are created **before** any data-dependent transformations
+- If using time-series data, ensure temporal ordering is respected (no future data leaking into past)
+
+### Data Validation
+- Check shapes and dtypes after each transformation step
+- Assert no unexpected NaN/null values are introduced
+- Validate that column names and feature counts remain consistent through the pipeline
+- Log dataset sizes at each stage (raw -> cleaned -> split -> transformed)
+
+### Metrics and Logging
+- Always log evaluation metrics to files (not just stdout)
+- Include both summary metrics and per-class/per-fold breakdowns where applicable
+- Save confusion matrices, learning curves, or other diagnostic plots when relevant
 
 ## Stop Condition
 
@@ -100,5 +121,5 @@ If there are still stories with `passes: false`, end your response normally (ano
 
 - Work on ONE story per iteration
 - Commit frequently
-- Keep CI green
-- Read the Codebase Patterns section in progress.txt before starting
+- Keep tests green
+- Read the Pipeline Patterns section in progress.txt before starting

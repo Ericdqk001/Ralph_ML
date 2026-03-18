@@ -1,0 +1,98 @@
+{
+  "project": "ExampleMLPipeline",
+  "branchName": "ralph-ml/experiment-name",
+  "description": "Build an ML pipeline for [task description]. The scientist defines the plan and tests; the agent implements each stage.",
+  "testCommand": "pytest tests/ -v",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Data loading and validation",
+      "description": "Load raw data from the specified source and validate schema, types, and basic integrity. Output a clean DataFrame ready for preprocessing.",
+      "acceptanceCriteria": [
+        "Data loads without errors from the configured path",
+        "Schema validation passes (expected columns present, correct dtypes)",
+        "No silent data corruption (row count matches source)",
+        "Tests pass"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-002",
+      "title": "Data cleaning and preprocessing",
+      "description": "Handle missing values, outliers, and data type conversions. All preprocessing must be fit on training data only.",
+      "acceptanceCriteria": [
+        "Missing values are handled (imputed or removed with justification)",
+        "Outlier detection/treatment is applied where appropriate",
+        "Preprocessing is stateless: fit on train, transform on all splits",
+        "Data shapes are validated after each step",
+        "Tests pass"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Feature engineering",
+      "description": "Create derived features from the cleaned data. Document each feature and its rationale.",
+      "acceptanceCriteria": [
+        "New features are created as specified in the experiment design",
+        "Feature names are descriptive and documented",
+        "No data leakage (features derived only from training data statistics)",
+        "Feature count and names are logged",
+        "Tests pass"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Train/validation/test split",
+      "description": "Split the dataset into train, validation, and test sets with appropriate strategy (random, stratified, or temporal).",
+      "acceptanceCriteria": [
+        "Split ratios match experiment config (e.g., 70/15/15)",
+        "Stratification is applied for classification tasks",
+        "Random seed is set for reproducibility",
+        "No data leakage between splits",
+        "Split sizes are logged",
+        "Tests pass"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Model training",
+      "description": "Train the specified model(s) on the training set. Use validation set for hyperparameter tuning if applicable.",
+      "acceptanceCriteria": [
+        "Model trains without errors",
+        "Training metrics are logged (loss, accuracy, etc.)",
+        "Model is saved to a reproducible format",
+        "Random seeds are set for reproducibility",
+        "Tests pass"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Evaluation and reporting",
+      "description": "Evaluate the trained model on the test set. Generate metrics, plots, and a summary report.",
+      "acceptanceCriteria": [
+        "Test set metrics are computed and logged to results/",
+        "Confusion matrix or equivalent diagnostic is generated",
+        "Summary report is human-readable (CSV or markdown)",
+        "All evaluation uses the held-out test set only",
+        "Tests pass"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}
