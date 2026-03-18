@@ -1,21 +1,52 @@
 #!/bin/bash
-# Ralph Wiggum - Long-running AI agent loop
-# Usage: ./ralph.sh [--tool amp|claude] [max_iterations]
+# Ralph_ML - Autonomous ML pipeline agent loop
+# Usage: ./ralph.sh [--prd <path>] [--test-cmd <command>] [max_iterations]
 
 set -e
 
 # Parse arguments
-TOOL="amp"  # Default to amp for backwards compatibility
 MAX_ITERATIONS=10
+PRD_PATH=""
+TEST_CMD=""
+
+show_help() {
+  echo "Ralph_ML - Autonomous ML pipeline agent loop"
+  echo ""
+  echo "Usage: ./ralph.sh [OPTIONS] [max_iterations]"
+  echo ""
+  echo "Options:"
+  echo "  --prd <path>        Path to PRD JSON file (default: prd.json in script directory)"
+  echo "  --test-cmd <cmd>    Test command to run (e.g., 'pytest tests/ -v')"
+  echo "                      Exported as TEST_CMD env var for Claude"
+  echo "  --help              Show this help message"
+  echo ""
+  echo "Examples:"
+  echo "  ./ralph.sh                              # Default: 10 iterations, prd.json"
+  echo "  ./ralph.sh 20                           # 20 iterations"
+  echo "  ./ralph.sh --prd experiments/exp1.json 15"
+  echo "  ./ralph.sh --test-cmd 'pytest tests/ -v' 10"
+  exit 0
+}
 
 while [[ $# -gt 0 ]]; do
   case $1 in
-    --tool)
-      TOOL="$2"
+    --help)
+      show_help
+      ;;
+    --prd)
+      PRD_PATH="$2"
       shift 2
       ;;
-    --tool=*)
-      TOOL="${1#*=}"
+    --prd=*)
+      PRD_PATH="${1#*=}"
+      shift
+      ;;
+    --test-cmd)
+      TEST_CMD="$2"
+      shift 2
+      ;;
+    --test-cmd=*)
+      TEST_CMD="${1#*=}"
       shift
       ;;
     *)
@@ -28,37 +59,49 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Validate tool choice
-if [[ "$TOOL" != "amp" && "$TOOL" != "claude" ]]; then
-  echo "Error: Invalid tool '$TOOL'. Must be 'amp' or 'claude'."
-  exit 1
-fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PRD_FILE="$SCRIPT_DIR/prd.json"
+
+# Set PRD file path (default: prd.json in script directory)
+if [ -n "$PRD_PATH" ]; then
+  # If relative path, resolve relative to current working directory
+  if [[ "$PRD_PATH" != /* ]]; then
+    PRD_FILE="$(cd "$(dirname "$PRD_PATH")" 2>/dev/null && pwd)/$(basename "$PRD_PATH")"
+  else
+    PRD_FILE="$PRD_PATH"
+  fi
+else
+  PRD_FILE="$SCRIPT_DIR/prd.json"
+fi
+
 PROGRESS_FILE="$SCRIPT_DIR/progress.txt"
 ARCHIVE_DIR="$SCRIPT_DIR/archive"
 LAST_BRANCH_FILE="$SCRIPT_DIR/.last-branch"
+
+# Export TEST_CMD so Claude can access it
+if [ -n "$TEST_CMD" ]; then
+  export TEST_CMD
+fi
 
 # Archive previous run if branch changed
 if [ -f "$PRD_FILE" ] && [ -f "$LAST_BRANCH_FILE" ]; then
   CURRENT_BRANCH=$(jq -r '.branchName // empty' "$PRD_FILE" 2>/dev/null || echo "")
   LAST_BRANCH=$(cat "$LAST_BRANCH_FILE" 2>/dev/null || echo "")
-  
+
   if [ -n "$CURRENT_BRANCH" ] && [ -n "$LAST_BRANCH" ] && [ "$CURRENT_BRANCH" != "$LAST_BRANCH" ]; then
     # Archive the previous run
     DATE=$(date +%Y-%m-%d)
-    # Strip "ralph/" prefix from branch name for folder
-    FOLDER_NAME=$(echo "$LAST_BRANCH" | sed 's|^ralph/||')
+    # Strip "ralph-ml/" prefix from branch name for folder
+    FOLDER_NAME=$(echo "$LAST_BRANCH" | sed 's|^ralph-ml/||')
     ARCHIVE_FOLDER="$ARCHIVE_DIR/$DATE-$FOLDER_NAME"
-    
+
     echo "Archiving previous run: $LAST_BRANCH"
     mkdir -p "$ARCHIVE_FOLDER"
     [ -f "$PRD_FILE" ] && cp "$PRD_FILE" "$ARCHIVE_FOLDER/"
     [ -f "$PROGRESS_FILE" ] && cp "$PROGRESS_FILE" "$ARCHIVE_FOLDER/"
     echo "   Archived to: $ARCHIVE_FOLDER"
-    
+
     # Reset progress file for new run
-    echo "# Ralph Progress Log" > "$PROGRESS_FILE"
+    echo "# Ralph_ML Progress Log" > "$PROGRESS_FILE"
     echo "Started: $(date)" >> "$PROGRESS_FILE"
     echo "---" >> "$PROGRESS_FILE"
   fi
@@ -74,40 +117,37 @@ fi
 
 # Initialize progress file if it doesn't exist
 if [ ! -f "$PROGRESS_FILE" ]; then
-  echo "# Ralph Progress Log" > "$PROGRESS_FILE"
+  echo "# Ralph_ML Progress Log" > "$PROGRESS_FILE"
   echo "Started: $(date)" >> "$PROGRESS_FILE"
   echo "---" >> "$PROGRESS_FILE"
 fi
 
-echo "Starting Ralph - Tool: $TOOL - Max iterations: $MAX_ITERATIONS"
+echo "Starting Ralph_ML - Max iterations: $MAX_ITERATIONS"
+echo "PRD: $PRD_FILE"
+[ -n "$TEST_CMD" ] && echo "Test command: $TEST_CMD"
 
 for i in $(seq 1 $MAX_ITERATIONS); do
   echo ""
   echo "==============================================================="
-  echo "  Ralph Iteration $i of $MAX_ITERATIONS ($TOOL)"
+  echo "  Ralph_ML Iteration $i of $MAX_ITERATIONS"
   echo "==============================================================="
 
-  # Run the selected tool with the ralph prompt
-  if [[ "$TOOL" == "amp" ]]; then
-    OUTPUT=$(cat "$SCRIPT_DIR/prompt.md" | amp --dangerously-allow-all 2>&1 | tee /dev/stderr) || true
-  else
-    # Claude Code: use --dangerously-skip-permissions for autonomous operation, --print for output
-    OUTPUT=$(claude --dangerously-skip-permissions --print < "$SCRIPT_DIR/CLAUDE.md" 2>&1 | tee /dev/stderr) || true
-  fi
-  
+  # Claude Code: use --dangerously-skip-permissions for autonomous operation, --print for output
+  OUTPUT=$(claude --dangerously-skip-permissions --print < "$SCRIPT_DIR/CLAUDE.md" 2>&1 | tee /dev/stderr) || true
+
   # Check for completion signal
   if echo "$OUTPUT" | grep -q "<promise>COMPLETE</promise>"; then
     echo ""
-    echo "Ralph completed all tasks!"
+    echo "Ralph_ML completed all tasks!"
     echo "Completed at iteration $i of $MAX_ITERATIONS"
     exit 0
   fi
-  
+
   echo "Iteration $i complete. Continuing..."
   sleep 2
 done
 
 echo ""
-echo "Ralph reached max iterations ($MAX_ITERATIONS) without completing all tasks."
+echo "Ralph_ML reached max iterations ($MAX_ITERATIONS) without completing all tasks."
 echo "Check $PROGRESS_FILE for status."
 exit 1
