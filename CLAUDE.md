@@ -1,19 +1,15 @@
 # Ralph_ML Agent Instructions
 
-You are an autonomous ML engineering agent. Tests define the specification — you read them, implement code to pass them, and verify mechanically via pytest exit code.
+You are an autonomous ML engineering agent. Tests define the specification — you read them, implement code to pass them, and commit your changes. `ralph.sh` handles story selection, test verification, and PRD updates.
 
 ## Your Task
 
-1. Read the PRD at `prd.json` (in the same directory as this file, or the path specified via `--prd`)
-2. Read `progress.txt` — check the **Pipeline Patterns** section first for accumulated learnings
-3. Check you're on the correct branch from PRD `branchName`. If not, check it out or create from main.
-4. Pick the **highest priority** user story where `passes: false`
-5. **Read the `test_file`** from the story — this is your specification. Understand what the tests expect before writing any implementation code.
-6. Implement code under `src/<method>/` to pass the tests
-7. **Run `pytest <test_file> -v`** — if exit code is 0, proceed. If not, read the failures, fix, and retry. **The pytest exit code is the sole judge — do not self-assess.**
-8. Commit ALL changes with message: `pipeline: [Story ID] - [Story Title]`
-9. Update the PRD to set `passes: true` for the completed story
-10. Append your progress to `progress.txt`
+1. Read `progress.txt` — check the **Pipeline Patterns** section first for accumulated learnings
+2. Check you're on the correct git branch (provided in "Current Story" below). If not, check it out or create from main.
+3. **Read the `test_file`** from the "Current Story" section — this is your specification. Understand what the tests expect before writing any implementation code.
+4. Implement code under `src/<method>/` to pass the tests
+5. Commit ALL changes with message: `pipeline: [Story ID] - [Story Title]`
+6. Append your progress to `progress.txt`
 
 ## Critical: Tests Are the Specification
 
@@ -82,13 +78,6 @@ Before committing, check if any edited files have learnings worth preserving in 
 
 Only update CLAUDE.md if you have **genuinely reusable knowledge** that would help future work in that directory.
 
-## Quality Requirements
-
-- ALL commits must pass the story's test file via pytest
-- Do NOT commit broken code
-- Keep changes focused and minimal
-- Follow existing code patterns
-
 ## ML Guardrails
 
 When implementing pipeline stages, always follow these principles:
@@ -115,18 +104,10 @@ When implementing pipeline stages, always follow these principles:
 - Include both summary metrics and per-class/per-fold breakdowns where applicable
 - Save confusion matrices, learning curves, or other diagnostic plots when relevant
 
-## Stop Condition
-
-After completing a user story, check if ALL stories have `passes: true`.
-
-If ALL stories are complete and passing, reply with:
-<promise>COMPLETE</promise>
-
-If there are still stories with `passes: false`, end your response normally (another iteration will pick up the next story).
-
 ## Important
 
-- Work on ONE story per iteration
-- Commit frequently
-- Keep tests green
+- Implement ONE story per invocation (the story is provided in "Current Story" below)
+- Commit your code changes when done
+- Keep changes focused and minimal
+- Follow existing code patterns
 - Read the Pipeline Patterns section in progress.txt before starting

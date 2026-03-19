@@ -17,8 +17,9 @@ show_help() {
   echo "  --prd <path>        Path to PRD JSON file (default: prd.json in script directory)"
   echo "  --help              Show this help message"
   echo ""
-  echo "Each story in the PRD specifies a test_file. The agent runs pytest on that"
-  echo "file to verify the implementation."
+  echo "Each story in the PRD specifies a test_file. ralph.sh selects the story,"
+  echo "spawns Claude to implement code, then runs pytest to verify. On pass,"
+  echo "ralph.sh updates the PRD programmatically."
   echo ""
   echo "Examples:"
   echo "  ./ralph.sh                              # Default: 10 iterations, prd.json"
@@ -117,17 +118,78 @@ for i in $(seq 1 $MAX_ITERATIONS); do
   echo "  Ralph_ML Iteration $i of $MAX_ITERATIONS"
   echo "==============================================================="
 
-  # Claude Code: use --dangerously-skip-permissions for autonomous operation, --print for output
-  OUTPUT=$(claude --dangerously-skip-permissions --print < "$SCRIPT_DIR/CLAUDE.md" 2>&1 | tee /dev/stderr) || true
+  # --- Step 1: Select the highest-priority story where passes == false ---
+  STORY_JSON=$(jq -r '
+    [.userStories[] | select(.passes == false)]
+    | sort_by(.priority)
+    | first // empty
+  ' "$PRD_FILE")
 
-  # Check for completion signal
-  if echo "$OUTPUT" | grep -q "<promise>COMPLETE</promise>"; then
+  if [ -z "$STORY_JSON" ]; then
     echo ""
-    echo "Ralph_ML completed all tasks!"
-    echo "Completed at iteration $i of $MAX_ITERATIONS"
+    echo "All stories pass! Ralph_ML completed all tasks."
     exit 0
   fi
 
+  STORY_ID=$(echo "$STORY_JSON" | jq -r '.id')
+  STORY_TITLE=$(echo "$STORY_JSON" | jq -r '.title')
+  TEST_FILE=$(echo "$STORY_JSON" | jq -r '.test_file')
+  BRANCH_NAME=$(jq -r '.branchName // empty' "$PRD_FILE")
+
+  echo "Story:     $STORY_ID - $STORY_TITLE"
+  echo "Test file: $TEST_FILE"
+  echo "Branch:    $BRANCH_NAME"
+
+  # --- Step 2: Build prompt and run Claude ---
+  PROMPT="$(cat "$SCRIPT_DIR/CLAUDE.md")
+
+## Current Story
+- **ID:** $STORY_ID
+- **Title:** $STORY_TITLE
+- **Test file:** $TEST_FILE
+- **Branch:** $BRANCH_NAME
+- **PRD file:** $PRD_FILE
+
+Read the test file above and implement code to pass all tests. Commit your code when done."
+
+  echo ""
+  echo "--- Spawning Claude for $STORY_ID ---"
+  echo "$PROMPT" | claude --dangerously-skip-permissions --print 2>&1 | tee /dev/stderr || true
+
+  # --- Step 3: Run pytest to verify ---
+  echo ""
+  echo "--- Running pytest for $STORY_ID: $TEST_FILE ---"
+  if pytest "$TEST_FILE" -v; then
+    echo ""
+    echo "PASS: $STORY_ID - $STORY_TITLE"
+
+    # --- Step 4: Update PRD to set passes: true ---
+    jq --arg sid "$STORY_ID" '
+      .userStories |= map(
+        if .id == $sid then .passes = true else . end
+      )
+    ' "$PRD_FILE" > "${PRD_FILE}.tmp" && mv "${PRD_FILE}.tmp" "$PRD_FILE"
+
+    # --- Step 5: Commit PRD update ---
+    git add "$PRD_FILE"
+    git commit -m "prd: mark $STORY_ID as passing"
+
+    echo "PRD updated: $STORY_ID passes = true"
+  else
+    echo ""
+    echo "FAIL: $STORY_ID - $STORY_TITLE"
+    echo "Tests did not pass. Will retry on next iteration."
+  fi
+
+  # --- Step 6: Check if all stories now pass ---
+  REMAINING=$(jq '[.userStories[] | select(.passes == false)] | length' "$PRD_FILE")
+  if [ "$REMAINING" -eq 0 ]; then
+    echo ""
+    echo "All stories pass! Ralph_ML completed all tasks."
+    exit 0
+  fi
+
+  echo "Remaining stories: $REMAINING"
   echo "Iteration $i complete. Continuing..."
   sleep 2
 done
