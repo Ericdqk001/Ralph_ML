@@ -1,19 +1,26 @@
 # Ralph_ML Agent Instructions
 
-You are an autonomous ML engineering agent building a research pipeline.
+You are an autonomous ML engineering agent. Tests define the specification — you read them, implement code to pass them, and verify mechanically via pytest exit code.
 
 ## Your Task
 
 1. Read the PRD at `prd.json` (in the same directory as this file, or the path specified via `--prd`)
-2. Read the progress log at `progress.txt` (check Pipeline Patterns section first)
+2. Read `progress.txt` — check the **Pipeline Patterns** section first for accumulated learnings
 3. Check you're on the correct branch from PRD `branchName`. If not, check it out or create from main.
 4. Pick the **highest priority** user story where `passes: false`
-5. Implement that single user story
-6. Run quality checks: execute the test command from `prd.json`'s `testCommand` field, or the `$TEST_CMD` environment variable if set, or fall back to `pytest` in the project root
-7. Update CLAUDE.md files if you discover reusable patterns (see below)
-8. If checks pass, commit ALL changes with message: `pipeline: [Story ID] - [Story Title]`
+5. **Read the `test_file`** from the story — this is your specification. Understand what the tests expect before writing any implementation code.
+6. Implement code under `src/<method>/` to pass the tests
+7. **Run `pytest <test_file> -v`** — if exit code is 0, proceed. If not, read the failures, fix, and retry. **The pytest exit code is the sole judge — do not self-assess.**
+8. Commit ALL changes with message: `pipeline: [Story ID] - [Story Title]`
 9. Update the PRD to set `passes: true` for the completed story
 10. Append your progress to `progress.txt`
+
+## Critical: Tests Are the Specification
+
+- **Read the test file FIRST** before writing any implementation code
+- Tests encode the scientific correctness requirements (shapes, value ranges, no leakage, metrics)
+- Your job is to make the tests pass, not to interpret acceptance criteria
+- If a test seems wrong, note it in progress.txt but still implement to pass it
 
 ## Progress Report Format
 
@@ -33,11 +40,11 @@ APPEND to progress.txt (never replace, always append):
 ---
 ```
 
-The learnings section is critical - it helps future iterations avoid repeating mistakes and understand the pipeline better.
+The learnings section is critical — it helps future iterations avoid repeating mistakes.
 
 ## Consolidate Patterns
 
-If you discover a **reusable pattern** that future iterations should know, add it to the `## Pipeline Patterns` section at the TOP of progress.txt (create it if it doesn't exist). This section should consolidate the most important learnings:
+If you discover a **reusable pattern** that future iterations should know, add it to the `## Pipeline Patterns` section at the TOP of progress.txt (create it if it doesn't exist):
 
 ```
 ## Pipeline Patterns
@@ -53,9 +60,9 @@ Only add patterns that are **general and reusable**, not story-specific details.
 
 Before committing, check if any edited files have learnings worth preserving in nearby CLAUDE.md files:
 
-1. **Identify directories with edited files** - Look at which directories you modified
-2. **Check for existing CLAUDE.md** - Look for CLAUDE.md in those directories or parent directories
-3. **Add valuable learnings** - If you discovered something future developers/agents should know:
+1. **Identify directories with edited files** — Look at which directories you modified
+2. **Check for existing CLAUDE.md** — Look for CLAUDE.md in those directories or parent directories
+3. **Add valuable learnings** — If you discovered something future developers/agents should know:
    - Data processing patterns or conventions specific to that module
    - Gotchas or non-obvious requirements
    - Dependencies between pipeline stages
@@ -77,7 +84,7 @@ Only update CLAUDE.md if you have **genuinely reusable knowledge** that would he
 
 ## Quality Requirements
 
-- ALL commits must pass the project's test suite
+- ALL commits must pass the story's test file via pytest
 - Do NOT commit broken code
 - Keep changes focused and minimal
 - Follow existing code patterns
