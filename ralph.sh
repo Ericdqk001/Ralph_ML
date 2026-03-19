@@ -1,13 +1,12 @@
 #!/bin/bash
 # Ralph_ML - Autonomous ML pipeline agent loop
-# Usage: ./ralph.sh [--prd <path>] [--test-cmd <command>] [max_iterations]
+# Usage: ./ralph.sh [--prd <path>] [max_iterations]
 
 set -e
 
 # Parse arguments
 MAX_ITERATIONS=10
 PRD_PATH=""
-TEST_CMD=""
 
 show_help() {
   echo "Ralph_ML - Autonomous ML pipeline agent loop"
@@ -16,15 +15,15 @@ show_help() {
   echo ""
   echo "Options:"
   echo "  --prd <path>        Path to PRD JSON file (default: prd.json in script directory)"
-  echo "  --test-cmd <cmd>    Test command to run (e.g., 'pytest tests/ -v')"
-  echo "                      Exported as TEST_CMD env var for Claude"
   echo "  --help              Show this help message"
+  echo ""
+  echo "Each story in the PRD specifies a test_file. The agent runs pytest on that"
+  echo "file to verify the implementation."
   echo ""
   echo "Examples:"
   echo "  ./ralph.sh                              # Default: 10 iterations, prd.json"
   echo "  ./ralph.sh 20                           # 20 iterations"
-  echo "  ./ralph.sh --prd experiments/exp1.json 15"
-  echo "  ./ralph.sh --test-cmd 'pytest tests/ -v' 10"
+  echo "  ./ralph.sh --prd tasks/method_a/prd.json 15"
   exit 0
 }
 
@@ -39,14 +38,6 @@ while [[ $# -gt 0 ]]; do
       ;;
     --prd=*)
       PRD_PATH="${1#*=}"
-      shift
-      ;;
-    --test-cmd)
-      TEST_CMD="$2"
-      shift 2
-      ;;
-    --test-cmd=*)
-      TEST_CMD="${1#*=}"
       shift
       ;;
     *)
@@ -76,11 +67,6 @@ fi
 PROGRESS_FILE="$SCRIPT_DIR/progress.txt"
 ARCHIVE_DIR="$SCRIPT_DIR/archive"
 LAST_BRANCH_FILE="$SCRIPT_DIR/.last-branch"
-
-# Export TEST_CMD so Claude can access it
-if [ -n "$TEST_CMD" ]; then
-  export TEST_CMD
-fi
 
 # Archive previous run if branch changed
 if [ -f "$PRD_FILE" ] && [ -f "$LAST_BRANCH_FILE" ]; then
@@ -124,7 +110,6 @@ fi
 
 echo "Starting Ralph_ML - Max iterations: $MAX_ITERATIONS"
 echo "PRD: $PRD_FILE"
-[ -n "$TEST_CMD" ] && echo "Test command: $TEST_CMD"
 
 for i in $(seq 1 $MAX_ITERATIONS); do
   echo ""
