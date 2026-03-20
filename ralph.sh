@@ -177,7 +177,7 @@ for i in $(seq 1 $MAX_ITERATIONS); do
   echo "Branch:    $BRANCH_NAME"
 
   # --- Step 2: Build prompt and run Claude ---
-  PROMPT="$(cat "$SCRIPT_DIR/CLAUDE.md")
+  PROMPT="$(cat "$SCRIPT_DIR/prompt.md")
 
 ## Current Story
 - **ID:** $STORY_ID
@@ -186,7 +186,7 @@ for i in $(seq 1 $MAX_ITERATIONS); do
 - **Branch:** $BRANCH_NAME
 - **PRD file:** $PRD_FILE
 
-Read the test file above and implement code to pass all tests. Commit your code when done."
+Read the test file and implement code to pass all tests. Commit your code when done."
 
   echo ""
   echo "--- Spawning Claude for $STORY_ID ---"
