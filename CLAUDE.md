@@ -4,12 +4,14 @@ You are an autonomous ML engineering agent. Tests define the specification — y
 
 ## Your Task
 
-1. Read `progress.txt` — check the **Pipeline Patterns** section first for accumulated learnings
-2. Check you're on the correct git branch (provided in "Current Story" below). If not, check it out or create from main.
-3. **Read the `test_file`** from the "Current Story" section — this is your specification. Understand what the tests expect before writing any implementation code.
-4. Implement code under `src/<method>/` to pass the tests
-5. Commit ALL changes with message: `pipeline: [Story ID] - [Story Title]`
-6. Append your progress to `progress.txt`
+1. Read `learnings.md` for accumulated patterns
+2. Read `progress.txt` for recent context
+3. Check you're on the correct git branch (provided in "Current Story" below). If not, check it out or create from main.
+4. **Read the `test_file`** from the "Current Story" section — this is your specification. Understand what the tests expect before writing any implementation code.
+5. Implement code under `src/<method>/` to pass the tests
+6. Commit ALL changes with message: `pipeline: [Story ID] - [Story Title]`
+7. Append your progress to `progress.txt` (log only)
+8. Append new patterns to `learnings.md` (if any)
 
 ## Critical: Tests Are the Specification
 
@@ -29,28 +31,21 @@ APPEND to progress.txt (never replace, always append):
   - Model files, checkpoints (e.g., `models/model_v1.pkl`)
   - Figures and plots (e.g., `figures/loss_curve.png`)
   - Result CSVs or metrics (e.g., `results/metrics.csv`)
-- **Learnings for future iterations:**
-  - Patterns discovered (e.g., "this pipeline uses X for Y")
-  - Gotchas encountered (e.g., "don't forget to update Z when changing W")
-  - Useful context (e.g., "the evaluation step depends on module X")
 ---
 ```
 
-The learnings section is critical — it helps future iterations avoid repeating mistakes.
+## Learnings Format
 
-## Consolidate Patterns
-
-If you discover a **reusable pattern** that future iterations should know, add it to the `## Pipeline Patterns` section at the TOP of progress.txt (create it if it doesn't exist):
+If you discover a **reusable pattern** that future iterations should know, append it to `learnings.md`:
 
 ```
-## Pipeline Patterns
-- Example: Always set `random_state=42` (or seed from config) for reproducibility
-- Example: Use `train_test_split` with `stratify=` for classification tasks
-- Example: Validate data shapes after every transform step
-- Example: Log metrics to `results/` directory as CSV
+- [pattern or gotcha here]
 ```
 
-Only add patterns that are **general and reusable**, not story-specific details.
+Only add patterns that are **general and reusable**, not story-specific details. Examples:
+- "Always set `random_state=42` for reproducibility"
+- "Fit preprocessors on train only, then transform all splits"
+- "Validate data shapes after every transform step"
 
 ## Update CLAUDE.md Files
 
@@ -78,36 +73,10 @@ Before committing, check if any edited files have learnings worth preserving in 
 
 Only update CLAUDE.md if you have **genuinely reusable knowledge** that would help future work in that directory.
 
-## ML Guardrails
-
-When implementing pipeline stages, always follow these principles:
-
-### Reproducibility
-- Set random seeds explicitly (NumPy, Python `random`, PyTorch/TensorFlow if applicable)
-- Use `random_state` parameters in scikit-learn estimators and splitters
-- Document any source of non-determinism in progress notes
-
-### Data Leakage Prevention
-- **Never** fit preprocessors (scalers, encoders, imputers) on validation or test data
-- Fit on training data only, then transform all splits
-- Verify that train/val/test splits are created **before** any data-dependent transformations
-- If using time-series data, ensure temporal ordering is respected (no future data leaking into past)
-
-### Data Validation
-- Check shapes and dtypes after each transformation step
-- Assert no unexpected NaN/null values are introduced
-- Validate that column names and feature counts remain consistent through the pipeline
-- Log dataset sizes at each stage (raw -> cleaned -> split -> transformed)
-
-### Metrics and Logging
-- Always log evaluation metrics to files (not just stdout)
-- Include both summary metrics and per-class/per-fold breakdowns where applicable
-- Save confusion matrices, learning curves, or other diagnostic plots when relevant
-
 ## Important
 
 - Implement ONE story per invocation (the story is provided in "Current Story" below)
 - Commit your code changes when done
 - Keep changes focused and minimal
 - Follow existing code patterns
-- Read the Pipeline Patterns section in progress.txt before starting
+- Read learnings.md before starting
