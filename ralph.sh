@@ -66,6 +66,7 @@ else
 fi
 
 PROGRESS_FILE="$SCRIPT_DIR/progress.txt"
+LEARNINGS_FILE="$SCRIPT_DIR/learnings.md"
 ARCHIVE_DIR="$SCRIPT_DIR/archive"
 LAST_BRANCH_FILE="$SCRIPT_DIR/.last-branch"
 
@@ -85,12 +86,17 @@ if [ -f "$PRD_FILE" ] && [ -f "$LAST_BRANCH_FILE" ]; then
     mkdir -p "$ARCHIVE_FOLDER"
     [ -f "$PRD_FILE" ] && cp "$PRD_FILE" "$ARCHIVE_FOLDER/"
     [ -f "$PROGRESS_FILE" ] && cp "$PROGRESS_FILE" "$ARCHIVE_FOLDER/"
+    [ -f "$LEARNINGS_FILE" ] && cp "$LEARNINGS_FILE" "$ARCHIVE_FOLDER/"
     echo "   Archived to: $ARCHIVE_FOLDER"
 
     # Reset progress file for new run
     echo "# Ralph_ML Progress Log" > "$PROGRESS_FILE"
     echo "Started: $(date)" >> "$PROGRESS_FILE"
     echo "---" >> "$PROGRESS_FILE"
+
+    # Reset learnings file for new run
+    echo "# Learnings" > "$LEARNINGS_FILE"
+    echo "" >> "$LEARNINGS_FILE"
   fi
 fi
 
@@ -107,6 +113,12 @@ if [ ! -f "$PROGRESS_FILE" ]; then
   echo "# Ralph_ML Progress Log" > "$PROGRESS_FILE"
   echo "Started: $(date)" >> "$PROGRESS_FILE"
   echo "---" >> "$PROGRESS_FILE"
+fi
+
+# Initialize learnings file if it doesn't exist
+if [ ! -f "$LEARNINGS_FILE" ]; then
+  echo "# Learnings" > "$LEARNINGS_FILE"
+  echo "" >> "$LEARNINGS_FILE"
 fi
 
 echo "Starting Ralph_ML - Max iterations: $MAX_ITERATIONS"
