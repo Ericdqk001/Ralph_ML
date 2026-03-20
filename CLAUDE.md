@@ -47,32 +47,6 @@ Only add patterns that are **general and reusable**, not story-specific details.
 - "Fit preprocessors on train only, then transform all splits"
 - "Validate data shapes after every transform step"
 
-## Update CLAUDE.md Files
-
-Before committing, check if any edited files have learnings worth preserving in nearby CLAUDE.md files:
-
-1. **Identify directories with edited files** — Look at which directories you modified
-2. **Check for existing CLAUDE.md** — Look for CLAUDE.md in those directories or parent directories
-3. **Add valuable learnings** — If you discovered something future developers/agents should know:
-   - Data processing patterns or conventions specific to that module
-   - Gotchas or non-obvious requirements
-   - Dependencies between pipeline stages
-   - Testing approaches for that area
-   - Configuration or environment requirements
-
-**Examples of good CLAUDE.md additions:**
-- "When modifying the feature engineering step, also update the expected column list in tests"
-- "This module expects input DataFrames with a DatetimeIndex"
-- "Tests require sample data in `tests/fixtures/`"
-- "All preprocessing functions must be stateless (fit on train, transform on all splits)"
-
-**Do NOT add:**
-- Story-specific implementation details
-- Temporary debugging notes
-- Information already in progress.txt
-
-Only update CLAUDE.md if you have **genuinely reusable knowledge** that would help future work in that directory.
-
 ## Important
 
 - Implement ONE story per invocation (the story is provided in "Current Story" below)

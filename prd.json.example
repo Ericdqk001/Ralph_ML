@@ -7,7 +7,7 @@
       "id": "US-001",
       "title": "Data loading",
       "test_file": "tests/method_a/test_dataloader.py",
-      "priority": 1,
+      "implementation_order": 1,
       "passes": false,
       "notes": ""
     },
@@ -15,7 +15,7 @@
       "id": "US-002",
       "title": "Preprocessing",
       "test_file": "tests/method_a/test_preprocessing.py",
-      "priority": 2,
+      "implementation_order": 2,
       "passes": false,
       "notes": ""
     },
@@ -23,7 +23,7 @@
       "id": "US-003",
       "title": "Feature engineering",
       "test_file": "tests/method_a/test_features.py",
-      "priority": 3,
+      "implementation_order": 3,
       "passes": false,
       "notes": ""
     },
@@ -31,7 +31,7 @@
       "id": "US-004",
       "title": "Train/validation/test split",
       "test_file": "tests/method_a/test_split.py",
-      "priority": 4,
+      "implementation_order": 4,
       "passes": false,
       "notes": ""
     },
@@ -39,7 +39,7 @@
       "id": "US-005",
       "title": "Model training",
       "test_file": "tests/method_a/test_training.py",
-      "priority": 5,
+      "implementation_order": 5,
       "passes": false,
       "notes": ""
     },
@@ -47,7 +47,7 @@
       "id": "US-006",
       "title": "Evaluation and reporting",
       "test_file": "tests/method_a/test_evaluation.py",
-      "priority": 6,
+      "implementation_order": 6,
       "passes": false,
       "notes": ""
     }

@@ -175,7 +175,7 @@ Create `tasks/<method_name>/prd.json` with one story per test file:
       "id": "US-001",
       "title": "<Stage title>",
       "test_file": "tests/<method_name>/test_<stage>.py",
-      "priority": 1,
+      "implementation_order": 1,
       "passes": false,
       "notes": ""
     }
@@ -183,7 +183,7 @@ Create `tasks/<method_name>/prd.json` with one story per test file:
 }
 ```
 
-Stories are ordered by priority matching the natural pipeline flow (load -> preprocess -> split -> train -> evaluate).
+Stories are ordered by implementation_order matching the natural pipeline flow (load -> preprocess -> split -> train -> evaluate).
 
 ### 7. Create directory structure
 

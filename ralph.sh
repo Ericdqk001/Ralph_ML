@@ -1,12 +1,14 @@
 #!/bin/bash
 # Ralph_ML - Autonomous ML pipeline agent loop
-# Usage: ./ralph.sh [--prd <path>] [max_iterations]
+# Usage: ./ralph.sh [--prd <path>] [--model <model>] [--max-turns <n>] [max_iterations]
 
 set -e
 
 # Parse arguments
 MAX_ITERATIONS=10
 PRD_PATH=""
+MODEL="opus"
+MAX_TURNS=50
 
 show_help() {
   echo "Ralph_ML - Autonomous ML pipeline agent loop"
@@ -15,6 +17,8 @@ show_help() {
   echo ""
   echo "Options:"
   echo "  --prd <path>        Path to PRD JSON file (default: prd.json in script directory)"
+  echo "  --model <model>     Claude model to use (default: opus)"
+  echo "  --max-turns <n>     Max agentic turns per story (default: 50)"
   echo "  --help              Show this help message"
   echo ""
   echo "Each story in the PRD specifies a test_file. ralph.sh selects the story,"
@@ -25,6 +29,8 @@ show_help() {
   echo "  ./ralph.sh                              # Default: 10 iterations, prd.json"
   echo "  ./ralph.sh 20                           # 20 iterations"
   echo "  ./ralph.sh --prd tasks/method_a/prd.json 15"
+  echo "  ./ralph.sh --model sonnet                    # Use sonnet model"
+  echo "  ./ralph.sh --model sonnet --max-turns 80     # Sonnet with 80 turns per story"
   exit 0
 }
 
@@ -39,6 +45,22 @@ while [[ $# -gt 0 ]]; do
       ;;
     --prd=*)
       PRD_PATH="${1#*=}"
+      shift
+      ;;
+    --model)
+      MODEL="$2"
+      shift 2
+      ;;
+    --model=*)
+      MODEL="${1#*=}"
+      shift
+      ;;
+    --max-turns)
+      MAX_TURNS="$2"
+      shift 2
+      ;;
+    --max-turns=*)
+      MAX_TURNS="${1#*=}"
       shift
       ;;
     *)
@@ -123,6 +145,8 @@ fi
 
 echo "Starting Ralph_ML - Max iterations: $MAX_ITERATIONS"
 echo "PRD: $PRD_FILE"
+echo "Model: $MODEL"
+echo "Max turns per story: $MAX_TURNS"
 
 for i in $(seq 1 $MAX_ITERATIONS); do
   echo ""
@@ -130,10 +154,10 @@ for i in $(seq 1 $MAX_ITERATIONS); do
   echo "  Ralph_ML Iteration $i of $MAX_ITERATIONS"
   echo "==============================================================="
 
-  # --- Step 1: Select the highest-priority story where passes == false ---
+  # --- Step 1: Select the next story (by implementation_order) where passes == false ---
   STORY_JSON=$(jq -r '
     [.userStories[] | select(.passes == false)]
-    | sort_by(.priority)
+    | sort_by(.implementation_order)
     | first // empty
   ' "$PRD_FILE")
 
@@ -166,7 +190,7 @@ Read the test file above and implement code to pass all tests. Commit your code 
 
   echo ""
   echo "--- Spawning Claude for $STORY_ID ---"
-  echo "$PROMPT" | claude --dangerously-skip-permissions --print 2>&1 | tee /dev/stderr || true
+  echo "$PROMPT" | claude --model "$MODEL" --max-turns "$MAX_TURNS" --dangerously-skip-permissions --print 2>&1 | tee /dev/stderr || true
 
   # --- Step 3: Run pytest to verify ---
   echo ""
