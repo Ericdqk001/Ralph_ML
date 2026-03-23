@@ -145,96 +145,13 @@ Create one test file per pipeline stage under `tests/<method_name>/`. Each test 
 - **Enforce ML guardrails** — no data leakage, reproducibility, proper splits
 - **Include clear docstrings** — explain what each test verifies and why
 
-#### Test file structure template
+Use the test class skeleton in [references/test-file-template.md](references/test-file-template.md) as the base structure for each file.
 
-```python
-"""Tests for <stage_name> stage of <method_name> pipeline."""
-import pytest
-import numpy as np
-import pandas as pd
-
-# Tests import from the implementation module
-from src.<method_name>.<module> import <functions_to_test>
-
-
-class TestStageName:
-    """Tests for the <stage_name> stage."""
-
-    def test_basic_functionality(self):
-        """Verify the happy path works."""
-        ...
-
-    def test_output_shape(self):
-        """Verify output dimensions match expectations."""
-        ...
-
-    def test_no_data_leakage(self):
-        """Verify no information leaks across splits."""
-        ...
-
-    def test_reproducibility(self):
-        """Verify results are deterministic with same seed."""
-        ...
-
-    def test_edge_cases(self):
-        """Verify handling of edge cases (empty data, missing values, etc.)."""
-        ...
-```
-
-#### Key test patterns to include
-
-**Data loading tests:**
-- Data loads without error
-- Expected columns are present
-- Dtypes are correct
-- No silent row loss
-
-**Preprocessing tests:**
-- Missing values are handled
-- Output shapes are consistent
-- Fit on train only, transform all splits (leakage check)
-- No unexpected NaN introduced
-
-**Split tests:**
-- Split ratios are approximately correct
-- No overlap between splits
-- Stratification preserved (if applicable)
-- Reproducible with same seed
-
-**Training tests:**
-- Model trains without error
-- Loss decreases over epochs (if applicable)
-- Model is serializable/saveable
-- Reproducible with same seed
-
-**Evaluation tests:**
-- Metrics are computed correctly
-- Metrics are within expected range (sanity check, not exact values)
-- Metrics results are saved/returned in a structured format
+Consult [references/test-patterns.md](references/test-patterns.md) for key patterns to include per pipeline stage (data loading, preprocessing, split, training, evaluation).
 
 ### 5. Generate the PRD
 
-Create `tasks/<method_name>/prd.json` with one story per test file:
-
-```json
-{
-  "project": "<Method Name>",
-  "branchName": "ralph/<method_name>",
-  "description": "<User's description of the method>",
-  "userStories": [
-    {
-      "id": "US-001",
-      "title": "<Stage title>",
-      "test_file": "tests/<method_name>/test_<stage>.py",
-      "implementation_order": 1,
-      "passes": false,
-      "notes": ""
-    }
-  ]
-}
-```
-
-Stories are ordered by implementation_order matching the natural pipeline flow (load -> preprocess -> split -> train -> evaluate).
+Create `tasks/<method_name>/prd.json` following the schema in [references/prd-template.md](references/prd-template.md), with one story per test file.
 
 ### 6. Create directory structure
 
