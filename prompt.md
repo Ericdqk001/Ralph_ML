@@ -55,24 +55,6 @@ Only add patterns that are **general and reusable**, not story-specific details.
 - Follow existing code patterns
 - Read learnings.md before starting
 
-## Available Tools
+## Code Quality
 
-### `scripts/format.sh` — Format Python code
-
-Runs `ruff format` on the codebase. Call after writing or modifying Python files.
-
-```bash
-scripts/format.sh              # formats src/ and tests/
-scripts/format.sh src/models/  # format a specific directory
-```
-
-### `scripts/lint.sh` — Lint and auto-fix Python code
-
-Runs `ruff check --fix` to auto-fix safe issues, then reports any remaining problems.
-
-```bash
-scripts/lint.sh              # lint src/ and tests/
-scripts/lint.sh src/models/  # lint a specific directory
-```
-
-Run both after completing implementation, before committing.
+Before committing, format and lint your code using whatever tools the project provides.Check the project's `pyproject.toml`, `setup.cfg`, or `Makefile` for configured tools. If no formatter/linter is configured, skip this step.
