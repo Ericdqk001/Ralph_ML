@@ -55,6 +55,10 @@ Only add patterns that are **general and reusable**, not story-specific details.
 - Follow existing code patterns
 - Read learnings.md before starting
 
+## Project Setup
+
+If `pyproject.toml` does not exist, create one with the project's dependencies and `ruff` as a dev dependency. Run `uv sync` to set up the environment.
+
 ## Code Quality
 
-Before committing, format and lint your code using whatever tools the project provides.Check the project's `pyproject.toml`, `setup.cfg`, or `Makefile` for configured tools. If no formatter/linter is configured, skip this step.
+Always run `ruff format` and `ruff check --fix` before committing.
