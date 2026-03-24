@@ -6,6 +6,7 @@ set -e
 
 # Parse arguments
 MAX_ITERATIONS=10
+MAX_FAILURES=3
 PRD_PATH=""
 MODEL="opus"
 MAX_TURNS=50
@@ -163,10 +164,23 @@ echo "PRD: $PRD_FILE"
 echo "Model: $MODEL"
 echo "Max turns per story: $MAX_TURNS"
 
-for i in $(seq 1 $MAX_ITERATIONS); do
+ITERATION=0
+CONSECUTIVE_FAILURES=0
+
+while true; do
+  ITERATION=$((ITERATION + 1))
+
+  # --- Safety cap: stop if we exceed max iterations ---
+  if [ "$ITERATION" -gt "$MAX_ITERATIONS" ]; then
+    echo ""
+    echo "Ralph_ML reached max iterations ($MAX_ITERATIONS) without completing all tasks."
+    echo "Check $PROGRESS_FILE for status."
+    exit 1
+  fi
+
   echo ""
   echo "==============================================================="
-  echo "  Ralph_ML Iteration $i of $MAX_ITERATIONS"
+  echo "  Ralph_ML Iteration $ITERATION of $MAX_ITERATIONS"
   echo "==============================================================="
 
   # --- Step 1: Select the next story (by implementation_order) where passes == false ---
@@ -191,7 +205,10 @@ for i in $(seq 1 $MAX_ITERATIONS); do
   echo "Test file: $TEST_FILE"
   echo "Branch:    $BRANCH_NAME"
 
-  # --- Step 2: Build prompt and run Claude ---
+  # --- Step 2: Snapshot git state before Claude runs ---
+  GIT_SHA_BEFORE=$(git rev-parse HEAD 2>/dev/null || echo "")
+
+  # --- Step 3: Build prompt and run Claude ---
   PROMPT="$(cat "$SCRIPT_DIR/prompt.md")
 
 ## Current Story
@@ -208,21 +225,22 @@ Read the test file and implement code to pass all tests. Commit your code when d
   CLAUDE_CMD=(claude --model "$MODEL" --max-turns "$MAX_TURNS" --print --allowedTools "${ALLOWED_TOOLS[@]}")
   echo "$PROMPT" | "${CLAUDE_CMD[@]}" 2>&1 | tee /dev/stderr || true
 
-  # --- Step 3: Run pytest to verify ---
+  # --- Step 4: Run pytest to verify ---
   echo ""
   echo "--- Running pytest for $STORY_ID: $TEST_FILE ---"
   if pytest "$TEST_FILE" -v; then
     echo ""
     echo "PASS: $STORY_ID - $STORY_TITLE"
+    CONSECUTIVE_FAILURES=0
 
-    # --- Step 4: Update PRD to set passes: true ---
+    # --- Step 5: Update PRD to set passes: true ---
     jq --arg sid "$STORY_ID" '
       .userStories |= map(
         if .id == $sid then .passes = true else . end
       )
     ' "$PRD_FILE" > "${PRD_FILE}.tmp" && mv "${PRD_FILE}.tmp" "$PRD_FILE"
 
-    # --- Step 5: Commit PRD update ---
+    # --- Step 6: Commit PRD update ---
     git add "$PRD_FILE"
     git commit -m "prd: mark $STORY_ID as passing"
 
@@ -230,10 +248,27 @@ Read the test file and implement code to pass all tests. Commit your code when d
   else
     echo ""
     echo "FAIL: $STORY_ID - $STORY_TITLE"
-    echo "Tests did not pass. Will retry on next iteration."
+
+    # --- Circuit breaker: detect no-progress iterations ---
+    GIT_SHA_AFTER=$(git rev-parse HEAD 2>/dev/null || echo "")
+    if [ "$GIT_SHA_BEFORE" = "$GIT_SHA_AFTER" ] && git diff --quiet 2>/dev/null; then
+      # No commits and no uncommitted changes — no progress at all
+      CONSECUTIVE_FAILURES=$((CONSECUTIVE_FAILURES + 1))
+      echo "No progress detected ($CONSECUTIVE_FAILURES/$MAX_FAILURES)"
+      if [ "$CONSECUTIVE_FAILURES" -ge "$MAX_FAILURES" ]; then
+        echo ""
+        echo "Circuit breaker: $MAX_FAILURES consecutive iterations with no progress."
+        echo "The agent may be stuck on $STORY_ID. Check $PROGRESS_FILE for details."
+        exit 1
+      fi
+    else
+      # Files were changed or committed — progress was made, just tests didn't pass yet
+      CONSECUTIVE_FAILURES=0
+      echo "Tests failed but progress was made. Retrying..."
+    fi
   fi
 
-  # --- Step 6: Check if all stories now pass ---
+  # --- Step 7: Check if all stories now pass ---
   REMAINING=$(jq '[.userStories[] | select(.passes == false)] | length' "$PRD_FILE")
   if [ "$REMAINING" -eq 0 ]; then
     echo ""
@@ -242,11 +277,6 @@ Read the test file and implement code to pass all tests. Commit your code when d
   fi
 
   echo "Remaining stories: $REMAINING"
-  echo "Iteration $i complete. Continuing..."
+  echo "Iteration $ITERATION complete. Continuing..."
   sleep 2
 done
-
-echo ""
-echo "Ralph_ML reached max iterations ($MAX_ITERATIONS) without completing all tasks."
-echo "Check $PROGRESS_FILE for status."
-exit 1
