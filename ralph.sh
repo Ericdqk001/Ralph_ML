@@ -1,6 +1,6 @@
 #!/bin/bash
 # Ralph_ML - Autonomous ML pipeline agent loop
-# Usage: ./ralph.sh [--prd <path>] [--model <model>] [--max-turns <n>] [max_iterations]
+# Usage: ./ralph.sh [--prd <path>] [--model <model>] [max_iterations]
 
 set -e
 
@@ -9,7 +9,6 @@ MAX_ITERATIONS=10
 MAX_FAILURES=3
 PRD_PATH=""
 MODEL="opus"
-MAX_TURNS=50
 
 # Allowed tools — whitelist what Claude can use (replaces --dangerously-skip-permissions)
 # Each entry is a separate tool or Bash pattern. Bash(git *) is intentionally avoided
@@ -34,7 +33,6 @@ show_help() {
   echo "Options:"
   echo "  --prd <path>        Path to PRD JSON file (default: prd.json in script directory)"
   echo "  --model <model>     Claude model to use (default: opus)"
-  echo "  --max-turns <n>     Max agentic turns per story (default: 50)"
   echo "  --help              Show this help message"
   echo ""
   echo "Each story in the PRD specifies a test_file. ralph.sh selects the story,"
@@ -46,7 +44,6 @@ show_help() {
   echo "  ./ralph.sh 20                           # 20 iterations"
   echo "  ./ralph.sh --prd tasks/method_a/prd.json 15"
   echo "  ./ralph.sh --model sonnet                    # Use sonnet model"
-  echo "  ./ralph.sh --model sonnet --max-turns 80     # Sonnet with 80 turns per story"
   exit 0
 }
 
@@ -69,14 +66,6 @@ while [[ $# -gt 0 ]]; do
       ;;
     --model=*)
       MODEL="${1#*=}"
-      shift
-      ;;
-    --max-turns)
-      MAX_TURNS="$2"
-      shift 2
-      ;;
-    --max-turns=*)
-      MAX_TURNS="${1#*=}"
       shift
       ;;
     *)
@@ -162,7 +151,6 @@ fi
 echo "Starting Ralph_ML - Max iterations: $MAX_ITERATIONS"
 echo "PRD: $PRD_FILE"
 echo "Model: $MODEL"
-echo "Max turns per story: $MAX_TURNS"
 
 ITERATION=0
 CONSECUTIVE_FAILURES=0
@@ -222,7 +210,7 @@ Read the test file and implement code to pass all tests. Commit your code when d
 
   echo ""
   echo "--- Spawning Claude for $STORY_ID ---"
-  CLAUDE_CMD=(claude --model "$MODEL" --max-turns "$MAX_TURNS" --print --allowedTools "${ALLOWED_TOOLS[@]}")
+  CLAUDE_CMD=(claude --model "$MODEL" --print --allowedTools "${ALLOWED_TOOLS[@]}")
   echo "$PROMPT" | "${CLAUDE_CMD[@]}" 2>&1 | tee /dev/stderr || true
 
   # --- Step 4: Run pytest to verify ---
