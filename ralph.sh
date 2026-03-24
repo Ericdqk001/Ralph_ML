@@ -10,6 +10,21 @@ PRD_PATH=""
 MODEL="opus"
 MAX_TURNS=50
 
+# Allowed tools — whitelist what Claude can use (replaces --dangerously-skip-permissions)
+# Each entry is a separate tool or Bash pattern. Bash(git *) is intentionally avoided
+# because it would permit destructive commands like git clean/git rm. Instead we
+# whitelist each safe git subcommand individually.
+ALLOWED_TOOLS=(
+  "Read" "Write" "Edit" "MultiEdit" "Glob" "Grep" "Task" "TodoWrite"
+  "WebFetch" "WebSearch" "NotebookEdit"
+  "Bash(git add *)" "Bash(git commit *)" "Bash(git diff *)"
+  "Bash(git log *)" "Bash(git status)" "Bash(git status *)"
+  "Bash(git push *)" "Bash(git pull *)" "Bash(git fetch *)"
+  "Bash(git checkout *)" "Bash(git branch *)" "Bash(git stash *)"
+  "Bash(git merge *)" "Bash(git tag *)"
+  "Bash(pytest)" "Bash(python *)" "Bash(pip install *)" "Bash(uv *)"
+)
+
 show_help() {
   echo "Ralph_ML - Autonomous ML pipeline agent loop"
   echo ""
@@ -190,7 +205,8 @@ Read the test file and implement code to pass all tests. Commit your code when d
 
   echo ""
   echo "--- Spawning Claude for $STORY_ID ---"
-  echo "$PROMPT" | claude --model "$MODEL" --max-turns "$MAX_TURNS" --dangerously-skip-permissions --print 2>&1 | tee /dev/stderr || true
+  CLAUDE_CMD=(claude --model "$MODEL" --max-turns "$MAX_TURNS" --print --allowedTools "${ALLOWED_TOOLS[@]}")
+  echo "$PROMPT" | "${CLAUDE_CMD[@]}" 2>&1 | tee /dev/stderr || true
 
   # --- Step 3: Run pytest to verify ---
   echo ""
