@@ -28,3 +28,9 @@
 - Metrics are computed correctly
 - Metrics are within expected range (sanity check, not exact values)
 - Metrics results are saved/returned in a structured format
+
+**Orchestration / pipeline.run() tests:**
+- Data augmentation applied to training split only, not val/test
+- Preprocessing fitted on train, transformed on all splits
+- Stages execute in correct order
+- Output of one stage feeds correctly into the next

@@ -137,58 +137,13 @@ Iterate on the test strategy until the user explicitly approves.
 
 ### 4. Generate the test suite — page object pattern, one file at a time
 
-Tests target a single **`Pipeline` class** imported from `src.<method_name>.pipeline`. This is the page object — every test file interacts with the pipeline through this one class.
+Tests target a single **`Pipeline` class** imported from `src.<method_name>.pipeline`. This is the page object — every test file interacts with the pipeline through this one class. The specific methods on `Pipeline` (e.g., `load()`, `preprocess()`, `train()`, `run()`) depend on the pipeline defined in stage 1.
 
-#### Pipeline class contract
+One test file per pipeline component. See [references/test-structure.md](references/test-structure.md) for an example layout. Use [references/test-file-template.md](references/test-file-template.md) as the base structure and consult [references/test-patterns.md](references/test-patterns.md) for stage-specific and orchestration patterns.
 
-The `Pipeline` class exposes:
+Before presenting each file, review internally for the tests' ability to ensure scientific rigor.
 
-- **Config attributes** — tested for correctness: `random_seed`, `split_ratio`, `data_format`, etc.
-- **Stage methods** — each corresponds to a pipeline stage:
-  - `load()` — load raw data
-  - `preprocess()` — clean, transform, augment
-  - `split()` — train/val/test split
-  - `train()` — fit the model
-  - `evaluate()` — compute metrics
-- **Orchestration method** — `run()` chains all stages; tested for correct wiring (e.g., no augmentation on eval split, preprocessing fitted on train only)
-
-#### Test file structure
-
-```
-tests/<method_name>/
-├── conftest.py        # Instantiates Pipeline, provides fixtures (synthetic data, paths)
-├── test_load.py       # Tests pipeline.load()
-├── test_preprocess.py # Tests pipeline.preprocess()
-├── test_split.py      # Tests pipeline.split()
-├── test_train.py      # Tests pipeline.train()
-├── test_evaluate.py   # Tests pipeline.evaluate()
-└── test_pipeline.py   # Tests pipeline.run() orchestration correctness
-```
-
-Every test file imports `Pipeline` from `src.<method_name>.pipeline` and calls the relevant method. Use [references/test-file-template.md](references/test-file-template.md) as the base structure and consult [references/test-patterns.md](references/test-patterns.md) for stage-specific patterns.
-
-#### Self-review before presenting
-
-Before presenting **any** test file to the user, review it internally for:
-
-- Consistent imports (all from `src.<method_name>.pipeline.Pipeline`)
-- No contradictions between test files
-- Fixtures used correctly (match what conftest.py provides)
-- Assertions match what was discussed in the scientific rigor stage
-
-#### Iterative generation workflow
-
-Generate and present files **one at a time**, in this order:
-
-1. **`conftest.py`** — shared fixtures first (Pipeline instantiation, synthetic data, tmp paths). Present to user, explain what each fixture provides, wait for approval.
-2. **`test_load.py`** — present, explain what each test verifies, wait for approval.
-3. **`test_preprocess.py`** — present, explain, wait for approval.
-4. **`test_split.py`** — present, explain, wait for approval.
-5. **`test_train.py`** — present, explain, wait for approval.
-6. **`test_evaluate.py`** — present, explain, wait for approval.
-7. **`test_pipeline.py`** — present, explain, wait for approval.
-
-For each file: after user approval, write it to disk immediately before moving to the next.
+Generate and present test files one at a time, starting with conftest. For each file, explain what it tests and wait for user approval before moving to the next.
 
 ### 5. Generate the PRD
 
