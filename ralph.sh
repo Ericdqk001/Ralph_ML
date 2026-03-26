@@ -5,7 +5,7 @@
 set -e
 
 # Parse arguments
-MAX_ITERATIONS=10
+MAX_ITERATIONS=20
 MAX_FAILURES=3
 PRD_PATH=""
 MODEL="opus"
@@ -31,7 +31,7 @@ show_help() {
   echo "Usage: ./ralph.sh [OPTIONS] [max_iterations]"
   echo ""
   echo "Options:"
-  echo "  --prd <path>        Path to PRD JSON file (default: prd.json in script directory)"
+  echo "  --prd <path>        Path to PRD JSON file (default: prd.json in working directory)"
   echo "  --model <model>     Claude model to use (default: opus)"
   echo "  --help              Show this help message"
   echo ""
@@ -78,24 +78,24 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROMPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(pwd)"
 
-# Set PRD file path (default: prd.json in script directory)
+# Set PRD file path (default: prd.json in project directory)
 if [ -n "$PRD_PATH" ]; then
-  # If relative path, resolve relative to current working directory
   if [[ "$PRD_PATH" != /* ]]; then
     PRD_FILE="$(cd "$(dirname "$PRD_PATH")" 2>/dev/null && pwd)/$(basename "$PRD_PATH")"
   else
     PRD_FILE="$PRD_PATH"
   fi
 else
-  PRD_FILE="$SCRIPT_DIR/prd.json"
+  PRD_FILE="$PROJECT_DIR/prd.json"
 fi
 
-PROGRESS_FILE="$SCRIPT_DIR/progress.txt"
-LEARNINGS_FILE="$SCRIPT_DIR/learnings.md"
-ARCHIVE_DIR="$SCRIPT_DIR/archive"
-LAST_BRANCH_FILE="$SCRIPT_DIR/.last-branch"
+PROGRESS_FILE="$PROJECT_DIR/progress.txt"
+LEARNINGS_FILE="$PROJECT_DIR/learnings.md"
+ARCHIVE_DIR="$PROJECT_DIR/archive"
+LAST_BRANCH_FILE="$PROJECT_DIR/.last-branch"
 
 # Archive previous run if branch changed
 if [ -f "$PRD_FILE" ] && [ -f "$LAST_BRANCH_FILE" ]; then
@@ -197,7 +197,7 @@ while true; do
   GIT_SHA_BEFORE=$(git rev-parse HEAD 2>/dev/null || echo "")
 
   # --- Step 3: Build prompt and run Claude ---
-  PROMPT="$(cat "$SCRIPT_DIR/prompt.md")
+  PROMPT="$(cat "$PROMPT_DIR/prompt.md")
 
 ## Current Story
 - **ID:** $STORY_ID
@@ -210,8 +210,10 @@ Read the test file and implement code to pass all tests. Commit your code when d
 
   echo ""
   echo "--- Spawning Claude for $STORY_ID ---"
+  chmod -w "$PRD_FILE"
   CLAUDE_CMD=(claude --model "$MODEL" --print --allowedTools "${ALLOWED_TOOLS[@]}")
   echo "$PROMPT" | "${CLAUDE_CMD[@]}" 2>&1 | tee /dev/stderr || true
+  chmod +w "$PRD_FILE"
 
   # --- Step 4: Run pytest to verify ---
   echo ""
@@ -228,9 +230,9 @@ Read the test file and implement code to pass all tests. Commit your code when d
       )
     ' "$PRD_FILE" > "${PRD_FILE}.tmp" && mv "${PRD_FILE}.tmp" "$PRD_FILE"
 
-    # --- Step 6: Commit PRD update ---
+    # --- Step 6: Commit PRD update (may be a no-op if Claude already committed it) ---
     git add "$PRD_FILE"
-    git commit -m "prd: mark $STORY_ID as passing"
+    git diff --cached --quiet "$PRD_FILE" || git commit -m "prd: mark $STORY_ID as passing"
 
     echo "PRD updated: $STORY_ID passes = true"
   else

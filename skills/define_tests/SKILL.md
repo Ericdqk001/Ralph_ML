@@ -135,19 +135,60 @@ Iterate on the test strategy until the user explicitly approves.
 
 **Critical:** Do NOT proceed to test generation until the user explicitly says they approve the test strategy.
 
-### 4. Generate the test suite
+### 4. Generate the test suite — page object pattern, one file at a time
 
-Create one test file per pipeline stage under `tests/<method_name>/`. Each test file should:
+Tests target a single **`Pipeline` class** imported from `src.<method_name>.pipeline`. This is the page object — every test file interacts with the pipeline through this one class.
 
-- **Import from `src.<method_name>`** — test the public API that the agent will implement
-- **Be self-contained** — each test file can run independently
-- **Encode correctness requirements** — shapes, dtypes, value ranges, no NaN where unexpected
-- **Enforce ML guardrails** — no data leakage, reproducibility, proper splits
-- **Include clear docstrings** — explain what each test verifies and why
+#### Pipeline class contract
 
-Use the test class skeleton in [references/test-file-template.md](references/test-file-template.md) as the base structure for each file.
+The `Pipeline` class exposes:
 
-Consult [references/test-patterns.md](references/test-patterns.md) for key patterns to include per pipeline stage (data loading, preprocessing, split, training, evaluation).
+- **Config attributes** — tested for correctness: `random_seed`, `split_ratio`, `data_format`, etc.
+- **Stage methods** — each corresponds to a pipeline stage:
+  - `load()` — load raw data
+  - `preprocess()` — clean, transform, augment
+  - `split()` — train/val/test split
+  - `train()` — fit the model
+  - `evaluate()` — compute metrics
+- **Orchestration method** — `run()` chains all stages; tested for correct wiring (e.g., no augmentation on eval split, preprocessing fitted on train only)
+
+#### Test file structure
+
+```
+tests/<method_name>/
+├── conftest.py        # Instantiates Pipeline, provides fixtures (synthetic data, paths)
+├── test_load.py       # Tests pipeline.load()
+├── test_preprocess.py # Tests pipeline.preprocess()
+├── test_split.py      # Tests pipeline.split()
+├── test_train.py      # Tests pipeline.train()
+├── test_evaluate.py   # Tests pipeline.evaluate()
+└── test_pipeline.py   # Tests pipeline.run() orchestration correctness
+```
+
+Every test file imports `Pipeline` from `src.<method_name>.pipeline` and calls the relevant method. Use [references/test-file-template.md](references/test-file-template.md) as the base structure and consult [references/test-patterns.md](references/test-patterns.md) for stage-specific patterns.
+
+#### Self-review before presenting
+
+Before presenting **any** test file to the user, review it internally for:
+
+- Consistent imports (all from `src.<method_name>.pipeline.Pipeline`)
+- No contradictions between test files
+- Fixtures used correctly (match what conftest.py provides)
+- Assertions match what was discussed in the scientific rigor stage
+
+#### Iterative generation workflow
+
+Generate and present files **one at a time**, in this order:
+
+1. **`conftest.py`** — shared fixtures first (Pipeline instantiation, synthetic data, tmp paths). Present to user, explain what each fixture provides, wait for approval.
+2. **`test_load.py`** — present, explain what each test verifies, wait for approval.
+3. **`test_preprocess.py`** — present, explain, wait for approval.
+4. **`test_split.py`** — present, explain, wait for approval.
+5. **`test_train.py`** — present, explain, wait for approval.
+6. **`test_evaluate.py`** — present, explain, wait for approval.
+7. **`test_pipeline.py`** — present, explain, wait for approval.
+
+For each file: after user approval, write it to disk immediately before moving to the next.
 
 ### 5. Generate the PRD
 
@@ -158,44 +199,20 @@ Create `tasks/<method_name>/prd.json` following the schema in [references/prd-te
 Create the following directories (implementation dirs are empty — the agent loop fills them):
 
 ```
-src/<method_name>/          # Empty — agent implements here
+src/<method_name>/             # Empty — agent implements here
 src/<method_name>/__init__.py
-tests/<method_name>/        # Test suite generated above
+src/<method_name>/pipeline.py  # Pipeline class — agent implements this
+tests/<method_name>/           # Test suite generated above
 tests/<method_name>/__init__.py
-tests/<method_name>/conftest.py  # Shared fixtures if needed
-tasks/<method_name>/        # PRD file
+tests/<method_name>/conftest.py
+tasks/<method_name>/           # PRD file
 ```
 
-Also create a `conftest.py` with shared fixtures (sample data, paths, etc.) if it would reduce duplication across test files.
+### 7. Final commit
 
-### 7. Present summary
-
-Before writing any files, present a summary:
-
-> **Summary for `<method_name>` pipeline:**
->
-> **Pipeline stages** (as discussed):
-> (list each stage with a one-line description)
->
-> **Test files:**
-> (list with brief description of what each tests)
->
-> **PRD:** `tasks/<method_name>/prd.json` with N stories
-> **Branch:** `ralph/<method_name>`
->
-> **Files to create:**
-> - `tests/<method_name>/test_*.py` (N files)
-> - `tests/<method_name>/conftest.py`
-> - `tests/<method_name>/__init__.py`
-> - `src/<method_name>/__init__.py`
-> - `tasks/<method_name>/prd.json`
-
-### 8. Write files and commit
-
-After user approval:
-1. Create all directories and files
-2. Verify the test files are syntactically valid (they should all fail since no implementation exists yet)
-3. Commit with message: `tests: define test suite for <method_name> pipeline`
+After all test files have been individually approved and written:
+1. Verify the test files are syntactically valid (they should all fail since no implementation exists yet)
+2. Commit with message: `tests: define test suite for <method_name> pipeline`
 
 ## Important Notes
 
@@ -204,4 +221,5 @@ After user approval:
 - **Never provide defaults** — always ask the scientist for explicit answers
 - **Do not proceed to test generation until the user explicitly approves** the test strategy
 - **Fixtures for test data** — use conftest.py to provide sample/synthetic data that tests can use
-- **Imports from `src.<method>`** — tests always import from the implementation module, establishing the API contract
+- **Imports from `src.<method>.pipeline`** — tests always import `Pipeline` from the implementation module, establishing the API contract
+- **Self-review every file** — before presenting a test file, check imports, fixture usage, and assertion consistency across all files generated so far
